@@ -34,6 +34,16 @@ class TaskResponse(TaskCreate):
     id: int
     created_at: datetime
 
+def map_row_to_task(row: sqlite3.Row) -> TaskResponse:
+    return TaskResponse(
+        id=row["id"],
+        title=row["title"],
+        description=row["description"],
+        status=row["status"],
+        priority=row["priority"],
+        created_at=datetime.fromisoformat(row["created_at"])
+    )
+
 @app.post("/tasks", response_model=TaskResponse, status_code=201)
 def create_task(task: TaskCreate) -> TaskResponse:
     """Create a new task and return it."""
@@ -58,14 +68,8 @@ def create_task(task: TaskCreate) -> TaskResponse:
     except Exception:
         raise HTTPException(status_code=500, detail="Database error")
 
-    return TaskResponse(
-        id=row["id"],
-        title=row["title"],
-        description=row["description"],
-        status=row["status"],
-        priority=row["priority"],
-        created_at=datetime.fromisoformat(row["created_at"])
-    )
+    return map_row_to_task(row)
+
 
 @app.get("/tasks", response_model=List[TaskResponse])
 def get_tasks() -> List[TaskResponse]:
@@ -74,17 +78,7 @@ def get_tasks() -> List[TaskResponse]:
     cursor.execute("SELECT * FROM tasks")
     rows = cursor.fetchall()
 
-    return [
-        TaskResponse(
-            id=row["id"],
-            title=row["title"],
-            description=row["description"],
-            status=row["status"],
-            priority=row["priority"],
-            created_at=datetime.fromisoformat(row["created_at"])
-        )
-        for row in rows
-    ]
+    return [map_row_to_task(row) for row in rows]
 
 @app.put("/tasks/{task_id}", response_model=TaskResponse)
 def update_task(task_id: int, task: TaskCreate) -> TaskResponse:
@@ -116,14 +110,7 @@ def update_task(task_id: int, task: TaskCreate) -> TaskResponse:
     except Exception:
         raise HTTPException(status_code=500, detail="Database error")
 
-    return TaskResponse(
-        id=row["id"],
-        title=row["title"],
-        description=row["description"],
-        status=row["status"],
-        priority=row["priority"],
-        created_at=datetime.fromisoformat(row["created_at"])
-    )
+    return map_row_to_task(row)
 
 @app.delete("/tasks/{task_id}", status_code=204)
 def delete_task(task_id: int) -> None:
